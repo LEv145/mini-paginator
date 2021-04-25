@@ -16,7 +16,7 @@ import mini_paginaror
 
 @bot.command()
 async def test_paginate(ctx):
-    embeds = [
+    pages = [
         Embed(title="test page 1", description="Page1", color=0x115599),
         Embed(title="test page 2", description="Page2.", color=0x5599ff),
         Embed(title="test page 3", description="Page3", color=0x191638)
