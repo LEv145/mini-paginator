@@ -25,8 +25,8 @@ async def test_paginate(ctx):
         ctx, 
         pages=ages, 
         page_format="[{}\{}]",
-        control_emojis=("⏮", "◀", "▶", "⏭", "🔢", "❌")
-        separator=" * "
+        control_emojis=("⏮", "◀", "▶", "⏭", "🔢", "❌"),
+        separator=" * ",
         enter_page="Enter num page: "
     )
     await paginator.run(timeout=60)
