@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Coroutine
 from copy import deepcopy
 
 import discord
@@ -12,7 +12,7 @@ class Dialog():
         self.message: Optional[discord.Message] = None
         self.color: hex = kw.get("color") or kw.get("colour") or 0x000000
 
-    async def quit(self, text: str = None):
+    async def quit(self, text: str = None) -> Coroutine:
         """
         Диалог выхода
         """
@@ -23,7 +23,7 @@ class Dialog():
             await self.message.edit(content=text, embed=None)
             await self.message.clear_reactions()
 
-    async def update(self, text: str, color: hex = None, hide_author: bool = False):
+    async def update(self, text: str, color: hex = None, hide_author: bool = False) -> Coroutine:
         """
         Обновление диалога
         """
@@ -39,7 +39,7 @@ class Dialog():
 
         await self.edit(embed=self.embed)
 
-    async def edit(self, text: str = None, embed: discord.Embed = None):
+    async def edit(self, text: str = None, embed: discord.Embed = None) -> Coroutine:
         """
         Редактирование диалога
         """
@@ -128,7 +128,7 @@ class EmbedPaginator(Dialog):
         for emoji in self.control_emojis:
             await self.message.add_reaction(emoji)
 
-        def check(r: discord.Reaction, u: discord.User):
+        def check(r: discord.Reaction, u: discord.User) -> bool:
             res = (r.message.id == self.message.id) and (r.emoji in self.control_emojis)
 
             if len(users) > 0:
@@ -194,6 +194,32 @@ class EmbedPaginator(Dialog):
 
             current_page_index = load_page_index
 
+    async def __get_page(self, users, current_page_index, max_index) -> int:
+        """
+        Получаем страничку путём ввода числа пользователем
+        """
+
+        def check(msg: discord.Message) -> bool:
+            res = (msg.channel == self.ctx.channel)
+
+            if len(users) > 0:
+                res = res and msg.author.id in [user.id for user in users]
+            return res
+
+        try:
+            msg = await self.ctx.bot.wait_for(
+                "message", check=check, timeout=30
+            )
+        except asyncio.TimeoutError:
+            return current_page_index
+        else:
+            content: str = msg.content
+            if content.isdigit() and 0 <= int(content)-1 <= max_index:
+                return int(content)-1
+            else:
+                return current_page_index
+
+
     @staticmethod
     def generate_sub_lists(origin_list: list, max_len: int = 25) -> List[list]:
         """
@@ -213,29 +239,4 @@ class EmbedPaginator(Dialog):
         else:
             sub_lists = [origin_list]
 
-        return sub_lists
-
-    async def __get_page(self, users, current_page_index, max_index) -> int:
-        """
-        Получаем страничку путём ввода числа пользователем
-        """
-
-        def check(msg: discord.Message):
-            res = (msg.channel == self.ctx.channel)
-
-            if len(users) > 0:
-                res = res and msg.author.id in [user.id for user in users]
-            return res
-
-        try:
-            msg = await self.ctx.bot.wait_for(
-                "message", check=check, timeout=30
-            )
-        except asyncio.TimeoutError:
-            return current_page_index
-        else:
-            content: str = msg.content
-            if content.isdigit() and 0 <= int(content)-1 <= max_index:
-                return int(content)-1
-            else:
-                return current_page_index
+        return sub_lists 
