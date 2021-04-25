@@ -2,6 +2,10 @@
 Mini-paginator for discord.py
 
 # Install
+
+```
+python3 -m pip install -U mini-paginator
+```
 ```
 python3 -m pip install -U git+https://github.com/LEv145/mini-paginator
 ```
