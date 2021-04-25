@@ -215,7 +215,7 @@ class EmbedPaginator(Dialog):
 
         return sub_lists
 
-    async def __get_page(self, users, current_page_index, max_index):
+    async def __get_page(self, users, current_page_index, max_index) -> int:
         """
         Получаем страничку путём ввода числа пользователем
         """
