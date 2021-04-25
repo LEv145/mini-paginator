@@ -14,7 +14,6 @@ python3 -m pip install -U git+https://github.com/LEv145/mini-paginator
 ```py
 import mini_paginaror
 
-
 @bot.command()
 async def test_paginate(ctx):
     embeds = [
@@ -22,12 +21,10 @@ async def test_paginate(ctx):
         Embed(title="test page 2", description="Page2.", color=0x5599ff),
         Embed(title="test page 3", description="Page3", color=0x191638)
     ]
-
-    pages = mini_paginaror.EmbedPaginator.generate_sub_lists(embeds, max_len=1)
     
     paginator = mini_paginaror.EmbedPaginator(
         ctx, 
-        pages=ages, 
+        pages=pages, 
         page_format="[{}\{}]",
         control_emojis=("⏮", "◀", "▶", "⏭", "🔢", "❌"),
         separator=" * ",
@@ -35,3 +32,6 @@ async def test_paginate(ctx):
     )
     await paginator.run(timeout=60)
 ```
+
+# TODO
+- Поднять свою ленивую задницу и написать мини доки
