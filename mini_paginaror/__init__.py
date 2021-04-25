@@ -239,4 +239,4 @@ class EmbedPaginator(Dialog):
         else:
             sub_lists = [origin_list]
 
-        return sub_lists 
+        return sub_lists
