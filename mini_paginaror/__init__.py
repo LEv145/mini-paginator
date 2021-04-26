@@ -3,6 +3,7 @@ from typing import List, Tuple, Optional, Coroutine
 from copy import deepcopy
 
 import discord
+import discord.ext
 
 class Dialog():
     """Базовый класс, определяющий общее встроенное диалоговое взаимодействие."""
