@@ -28,7 +28,7 @@ async def test_paginate(ctx: commands.Context):
     )
     await paginator.run(timeout=60)
 
-
+@bot.command()
 async def test_ckeck_paginator(ctx: commands.Context):
         embed = Embed(title="Hoq a u?", color=0x111111)
         paginator = mini_paginaror.CheckPaginator(ctx, embed=embed)
@@ -43,3 +43,4 @@ async def test_ckeck_paginator(ctx: commands.Context):
                         await ctx.send("Oh..Good luck, I hope you feel better.")
         
 ```
+
