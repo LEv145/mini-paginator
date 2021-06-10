@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import suppress
-from typing import Iterable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from discord import (
 	Embed,
@@ -32,28 +32,27 @@ class ForwardBackwardList(object):
 		else:
 			self.index -= 1
 
-	@property
-	def current(self):
-		return self.items[self.index]
-
 	def set(self, index: int):
 		assert 0 <= index <= self.max_index
 		self.index = index
+
+	@property
+	def current(self):
+		return self.items[self.index]
 
 	def __len__(self):
 		return len(self.items)
 
 class Dialog(object):
 	"""Базовый класс, определяющий общее встроенное диалоговое взаимодействие."""
-
-	def __init__(self):
-		self.embed: Embed
-		self.message: Message
+	embed: Embed
+	message: Message
 
 	async def edit(self, text: Optional[str] = None, embed: Optional[Embed] = None) -> None:
 		"""
 		Редактирование диалога
 		"""
+
 		await self.message.edit(content=text, embed=embed)
 
 	async def quit(self, text: Optional[str] = None) -> None:
@@ -79,8 +78,6 @@ class CheckPaginator(Dialog):
 		embed: Embed,
 		control_emojis: Tuple[str, str] = ('✅', '📛')
 	):
-		super().__init__()
-
 		self.ctx = ctx
 		self.embed = embed
 		self.control_emojis = control_emojis
@@ -138,8 +135,6 @@ class EmbedPaginator(Dialog):
 		enter_page: str = "`Введите номер стринички, куда хотите быстро переместиться: `",
 		quit_text: Optional[str] = None
 	):
-		super().__init__()
-
 		self.ctx = ctx
 		self.pages = pages
 		self.page_format = page_format
@@ -147,7 +142,6 @@ class EmbedPaginator(Dialog):
 		self.control_emojis = control_emojis
 		self.enter_page = enter_page
 		self.quit_text = quit_text
-
 
 	def formatting_pages(self) -> ForwardBackwardList:
 		"""
