@@ -251,21 +251,21 @@ class EmbedPaginator(Dialog):
 		Получаем страничку путём ввода числа пользователем
 		"""
 
-		def check(msg: Message):
-			res = (msg.channel == self.ctx.channel)
-
-			if len(users) > 0:
-				res = res and msg.author.id in [user.id for user in users]
-			return res
+		def check(message: Message):
+			result = (message.channel == self.ctx.channel)
+			
+			if users:
+				return result and message.author in users
+			return result
 
 		try:
-			msg = await self.ctx.bot.wait_for(
+			message: Message = await self.ctx.bot.wait_for(
 				"message", check=check, timeout=30
 			)
 		except asyncio.TimeoutError:
 			return None
 		else:
-			content: str = msg.content
+			content: str = message.content
 			if content.isdigit():
 				return int(content)-1
 			else:
