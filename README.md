@@ -34,7 +34,7 @@ async def test_ckeck_paginator(ctx: commands.Context):
         paginator = mini_paginaror.CheckPaginator(ctx, embed=embed)
         try:
                 check = await paginator.run()
-        excpept asyncio.TimeoutError:
+        except asyncio.TimeoutError:
                 await ctx.send("Opss..Time is over.")
         else:
                 if  check:
