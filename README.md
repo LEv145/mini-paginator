@@ -42,8 +42,8 @@ async def test_ckeck_paginator(ctx: commands.Context):
                 await ctx.send("Opss..Time is over.")
         else:
                 if  check:
-                        await ctx.send("Good!!!")
+                        await ctx.send("Coool!!!")
                 else:
-                        await ctx.send("Oh..Gud luck, I hope you feel better")
+                        await ctx.send("Oh..Good luck, I hope you feel better.")
         
 ```
