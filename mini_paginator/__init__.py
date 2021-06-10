@@ -45,7 +45,6 @@ class ForwardBackwardList(object):
 
 class Dialog(object):
 	"""Базовый класс, определяющий общее встроенное диалоговое взаимодействие."""
-	embed: Embed
 	message: Message
 
 	async def edit(self, text: Optional[str] = None, embed: Optional[Embed] = None) -> None:
@@ -129,7 +128,7 @@ class EmbedPaginator(Dialog):
 		self,
 		ctx: commands.Context,
 		pages: List[Embed],
-		control_emojis: Tuple[str, str, str, str, str, str] = ("⏮", "◀", "▶", "⏭", "🔢", "📛"),
+		control_emojis: Tuple[str, str, str, str, str, str] = ('⏮', '◀', '▶', '⏭', '🔢', '📛'),
 		page_format: str = "({}/{})",
 		separator: str = " • ",
 		enter_page: str = "`Введите номер стринички, куда хотите быстро переместиться: `",
@@ -224,8 +223,8 @@ class EmbedPaginator(Dialog):
 
 			elif emoji == self.control_emojis[4]:
 				enter_page_message: Message = await self.ctx.send(self.enter_page)
-				index = await self._get_page(users)
-				if index:
+				index: Optional[int] = await self._get_page(users)
+				if index is not None:
 					with suppress(AssertionError):
 						pages.set(index)
 				await enter_page_message.delete()
@@ -252,7 +251,7 @@ class EmbedPaginator(Dialog):
 		"""
 
 		def check(message: Message):
-			result = message.channel == self.ctx.channel
+			return message.channel == self.ctx.channel and message.author in users
 
 			if users:
 				return result and message.author in users
