@@ -1,243 +1,278 @@
 import asyncio
-from typing import List, Tuple, Optional, Coroutine
-from copy import deepcopy
+from contextlib import suppress
+from typing import Iterable, List, Optional, Tuple
 
-import discord
-import discord.ext
+from discord import (
+	Embed,
+	Message,
+	User,
+	Reaction,
+	TextChannel
+)
+from discord.ext import commands
+from discord.errors import DiscordException
+from more_itertools import chunked
 
-class Dialog():
-    """Базовый класс, определяющий общее встроенное диалоговое взаимодействие."""
 
-    def __init__(self, **kw):
-        self.embed: Optional[discord.Embed] = None
-        self.message: Optional[discord.Message] = None
-        self.color: hex = kw.get("color") or kw.get("colour") or 0x000000
+class ForwardBackwardList(object):
+	def __init__(self, items: list):
+		self.items = items
+		self.max_index = len(self)-1
+		self.index = 0
 
-    async def quit(self, text: str = None) -> Coroutine:
-        """
-        Диалог выхода
-        """
+	def forward(self):
+		if self.index+1 > self.max_index:
+			self.index = 0
+		else:
+			self.index += 1
 
-        if text is None:
-            await self.message.delete()
-        else:
-            await self.message.edit(content=text, embed=None)
-            await self.message.clear_reactions()
+	def back(self):
+		if self.index-1 < 0:
+			self.index = self.max_index
+		else:
+			self.index -= 1
 
-    async def update(self, text: str, color: hex = None, hide_author: bool = False) -> Coroutine:
-        """
-        Обновление диалога
-        """
+	@property
+	def current(self):
+		return self.items[self.index]
 
-        if color is None:
-            color = self.color
+	def set(self, index: int):
+		assert 0 <= index <= self.max_index
+		self.index = index
 
-        self.embed.colour = color
-        self.embed.title = text
+	def __len__(self):
+		return len(self.items)
 
-        if hide_author:
-            self.embed.set_author(name="")
+class Dialog(object):
+	"""Базовый класс, определяющий общее встроенное диалоговое взаимодействие."""
 
-        await self.edit(embed=self.embed)
+	def __init__(self):
+		self.embed: Embed
+		self.message: Message
 
-    async def edit(self, text: str = None, embed: discord.Embed = None) -> Coroutine:
-        """
-        Редактирование диалога
-        """
+	async def edit(self, text: Optional[str] = None, embed: Optional[Embed] = None) -> None:
+		"""
+		Редактирование диалога
+		"""
+		await self.message.edit(content=text, embed=embed)
 
-        await self.message.edit(content=text, embed=embed)
+	async def quit(self, text: Optional[str] = None) -> None:
+		"""
+		Диалог выхода
+		"""
+
+		with suppress(DiscordException):
+			if text is None:
+				await self.message.delete()
+			else:
+				await self.message.edit(content=text, embed=None)
+				await self.message.clear_reactions()
+
+class CheckPaginator(Dialog):
+	"""
+	Интерактивное меню с ожидаем ответ пользователя да или нет
+	"""
+
+	def __init__(
+		self,
+		ctx: commands.Context,
+		embed: Embed,
+		control_emojis: Tuple[str, str] = ('✅', '📛')
+	):
+		super().__init__()
+
+		self.ctx = ctx
+		self.embed = embed
+		self.control_emojis = control_emojis
+
+	async def run(
+		self,
+		maybe_users: Optional[List[User]] = None,
+		maybe_channel: Optional[TextChannel] = None,
+		timeout: int = 100
+	) -> bool:
+		"""
+		Запускаем
+		"""
+
+		users = maybe_users or [self.ctx.author]
+		channel = maybe_channel or self.ctx.channel
+
+		self.message: Message = await channel.send(embed=self.embed)
+
+		for i in self.control_emojis:
+			await self.message.add_reaction(i)
+
+		def check(reaction: Reaction, user: User):
+			return (
+				user.id in users and
+				reaction.emoji in self.control_emojis and
+				self.message.id == reaction.message.id
+			)
+
+		try:
+			reaction, _ = await self.ctx.bot.wait_for('reaction_add', timeout=timeout, check=check)
+		except asyncio.TimeoutError as error:
+			with suppress(DiscordException):
+				await self.message.clear_reactions()
+			raise error
+		else:
+			with suppress(DiscordException):
+				await self.message.clear_reactions()
+
+			return reaction.emoji == self.control_emojis[0]
+
 
 class EmbedPaginator(Dialog):
-    """
-    Представляет собой интерактивное меню, содержащее несколько вложений
-    """
+	"""
+	Представляет собой интерактивное меню, содержащее несколько вложений
+	"""
 
-    def __init__(
-        self,
-        ctx: discord.ext.commands.Context,
-        pages: List[discord.Embed],
-        message: discord.Message = None,
-        control_emojis: Tuple[str, str, str, str, str] = ("⏮", "◀", "▶", "⏭", "🔢", "📛"),
-        page_format: str = "({}/{})",
-        separator: str = " • ",
-        enter_page: str = "`Введите номер стринички, куда хотите быстро переместиться: `"
-    ):
-        """
-        Инициализируем новый пагинатор
-        """
-        super().__init__()
+	def __init__(
+		self,
+		ctx: commands.Context,
+		pages: List[Embed],
+		control_emojis: Tuple[str, str, str, str, str, str] = ("⏮", "◀", "▶", "⏭", "🔢", "📛"),
+		page_format: str = "({}/{})",
+		separator: str = " • ",
+		enter_page: str = "`Введите номер стринички, куда хотите быстро переместиться: `",
+		quit_text: Optional[str] = None
+	):
+		super().__init__()
 
-        self.ctx            = ctx
-        self.pages          = pages
-        self.message        = message
-        self.page_format    = page_format
-        self.separator      = separator
-        self.control_emojis = control_emojis
-        self.enter_page     = enter_page
-
-    @property
-    def formatted_pages(self) -> List[discord.Embed]:
-        """
-        Форматируем карасиво странички
-        """
-
-        pages = deepcopy(self.pages)
-        max_page = len(pages)
-
-        for index, page in enumerate(pages):
-            text = self.page_format.format(index+1, max_page)
-
-            if page.footer.text == discord.Embed.Empty:
-                page.set_footer(text=text)
-            else:
-                text = f"{page.footer.text}{self.separator}{text}"
-
-                if page.footer.icon_url == discord.Embed.Empty:
-                    page.set_footer(text=text)
-                else:
-                    page.set_footer(
-                        icon_url=page.footer.icon_url,
-                        text=text
-                    )
-        return pages
-
-    async def run(
-        self,
-        users: List[discord.User] = None,
-        channel: discord.TextChannel = None,
-        timeout: int  = 100
-    ):
-        """
-        Запускаем
-        """
-
-        if users is None:
-            users = [self.ctx.author]
-
-        if channel is None:
-            channel = self.ctx.channel
-
-        self.embed = self.pages[0]
-
-        if len(self.pages) == 1:
-            self.message = await channel.send(embed=self.embed)
-            return
-
-        self.message = await channel.send(embed=self.formatted_pages[0])
-        current_page_index = 0
-
-        for emoji in self.control_emojis:
-            await self.message.add_reaction(emoji)
-
-        def check(r: discord.Reaction, u: discord.User) -> bool:
-            res = (r.message.id == self.message.id) and (r.emoji in self.control_emojis)
-
-            if len(users) > 0:
-                res = res and u.id in [u1.id for u1 in users]
-            return res
-
-        while True:
-            try:
-                reaction, user = await self.ctx.bot.wait_for(
-                    "reaction_add", check=check, timeout=timeout
-                )
-            except asyncio.TimeoutError:
-                if not isinstance(
-                    channel, discord.channel.DMChannel
-                ) and not isinstance(channel, discord.channel.GroupChannel):
-                    try:
-                        await self.message.clear_reactions()
-                    except discord.Forbidden:
-                        pass
-                return
-
-            emoji = reaction.emoji
-            max_index = len(self.pages) - 1
-
-            if emoji == self.control_emojis[0]:
-                load_page_index = 0
-
-            elif emoji == self.control_emojis[1]:
-                load_page_index = (
-                    current_page_index - 1
-                    if current_page_index > 0
-                    else max_index
-                )
-
-            elif emoji == self.control_emojis[2]:
-                load_page_index = (
-                    current_page_index + 1
-                    if current_page_index < max_index
-                    else 0
-                )
-
-            elif emoji == self.control_emojis[3]:
-                load_page_index = max_index
-
-            elif emoji == self.control_emojis[4]:
-                msg = await self.ctx.send(self.enter_page)
-                load_page_index = await self.__get_page(users, current_page_index, max_index)
-                await msg.delete()
+		self.ctx = ctx
+		self.pages = pages
+		self.page_format = page_format
+		self.separator = separator
+		self.control_emojis = control_emojis
+		self.enter_page = enter_page
+		self.quit_text = quit_text
 
 
-            else:
-                await self.message.delete()
-                return
+	def formatting_pages(self) -> ForwardBackwardList:
+		"""
+		Форматируем красиво странички
+		"""
+		max_page = len(self.pages)
 
-            await self.message.edit(embed=self.formatted_pages[load_page_index])
-            if not isinstance(channel, discord.channel.DMChannel) and not isinstance(
-                channel, discord.channel.GroupChannel
-            ):
-                try:
-                    await self.message.remove_reaction(reaction, user)
-                except discord.Forbidden:
-                    pass
+		for index, page in enumerate(self.pages):
+			text = self.page_format.format(index+1, max_page)
 
-            current_page_index = load_page_index
+			if page.footer.text == Embed.Empty:
+				page.set_footer(text=text)
+			else:
+				text = f"{page.footer.text}{self.separator}{text}"
 
-    async def __get_page(self, users, current_page_index, max_index) -> int:
-        """
-        Получаем страничку путём ввода числа пользователем
-        """
+				if page.footer.icon_url == Embed.Empty:
+					page.set_footer(text=text)
+				else:
+					page.set_footer(
+						icon_url=page.footer.icon_url,
+						text=text
+					)
+		return ForwardBackwardList(self.pages)
 
-        def check(msg: discord.Message) -> bool:
-            res = (msg.channel == self.ctx.channel)
+	async def run(
+		self,
+		maybe_users: Optional[List[User]] = None,
+		maybe_channel: Optional[TextChannel] = None,
+		timeout: int  = 100
+	) -> None:
+		"""
+		Запускаем
+		"""
 
-            if len(users) > 0:
-                res = res and msg.author.id in [user.id for user in users]
-            return res
+		users = maybe_users or [self.ctx.author]
+		channel = maybe_channel or self.ctx.channel
 
-        try:
-            msg = await self.ctx.bot.wait_for(
-                "message", check=check, timeout=30
-            )
-        except asyncio.TimeoutError:
-            return current_page_index
-        else:
-            content: str = msg.content
-            if content.isdigit() and 0 <= int(content)-1 <= max_index:
-                return int(content)-1
-            else:
-                return current_page_index
+		# Форматируем странички
+		pages = self.formatting_pages()
 
+		if len(self.pages) == 1:
+			self.message = await channel.send(embed=pages.current)
+			return
 
-    @staticmethod
-    def generate_sub_lists(origin_list: list, max_len: int = 25) -> List[list]:
-        """
-        Берет список элементов и преобразует его в список подсписков этих
-        элементов с каждым подсписком, содержащим макс. элементы `max_len`
-        Это может быть использовано для легкого разделения содержимого для встраиваемых полей на несколько страниц
-        """
+		self.message: Message = await channel.send(embed=pages.current)
 
-        if len(origin_list) > max_len:
-            sub_lists = []
+		for emoji in self.control_emojis:
+			await self.message.add_reaction(emoji)
 
-            while len(origin_list) > max_len:
-                sub_lists.append(origin_list[:max_len])
-                del origin_list[:max_len]
-            sub_lists.append(origin_list)
+		def check(reaction: Reaction, user: User):
+			result = reaction.message.id == self.message.id and reaction.emoji in self.control_emojis
 
-        else:
-            sub_lists = [origin_list]
+			if users:
+				return result and user in users
+			else:
+				return result
 
-        return sub_lists
+		while True:
+			try:
+				reaction, user = await self.ctx.bot.wait_for(
+					"reaction_add", check=check, timeout=timeout
+				)
+			except asyncio.TimeoutError:
+				with suppress(DiscordException):
+					await self.message.clear_reactions()
+				return
+			emoji = reaction.emoji
+
+			if emoji == self.control_emojis[0]:
+				pages.set(0)
+
+			elif emoji == self.control_emojis[1]:
+				pages.back()
+
+			elif emoji == self.control_emojis[2]:
+				pages.forward()
+
+			elif emoji == self.control_emojis[3]:
+				pages.set(pages.max_index)
+
+			elif emoji == self.control_emojis[4]:
+				enter_page_message: Message = await self.ctx.send(self.enter_page)
+				index = await self._get_page(users)
+				if index:
+					with suppress(AssertionError):
+						pages.set(index)
+				await enter_page_message.delete()
+
+			else:
+				await self.quit(self.quit_text)
+
+			await self.message.edit(embed=pages.current)
+			with suppress(DiscordException):
+				await self.message.remove_reaction(reaction, user)
+
+	@staticmethod
+	def generate_sub_lists(iterable: list, max_len: int = 25) -> List[list]:
+		"""
+		Берет список элементов и преобразует его в список подсписков этих
+		элементов с каждым подсписком, содержащим макс. элементы `max_len`
+		Это может быть использовано для легкого разделения содержимого для встраиваемых полей на несколько страниц
+		"""
+		return list(chunked(iterable, max_len))
+
+	async def _get_page(self, users: List[User]) -> Optional[int]:
+		"""
+		Получаем страничку путём ввода числа пользователем
+		"""
+
+		def check(msg: Message):
+			res = (msg.channel == self.ctx.channel)
+
+			if len(users) > 0:
+				res = res and msg.author.id in [user.id for user in users]
+			return res
+
+		try:
+			msg = await self.ctx.bot.wait_for(
+				"message", check=check, timeout=30
+			)
+		except asyncio.TimeoutError:
+			return None
+		else:
+			content: str = msg.content
+			if content.isdigit():
+				return int(content)-1
+			else:
+				return None
