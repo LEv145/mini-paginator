@@ -252,8 +252,8 @@ class EmbedPaginator(Dialog):
 		"""
 
 		def check(message: Message):
-			result = (message.channel == self.ctx.channel)
-			
+			result = message.channel == self.ctx.channel
+
 			if users:
 				return result and message.author in users
 			return result
