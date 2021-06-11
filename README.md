@@ -8,7 +8,7 @@ python3 -m pip install -U git+https://github.com/LEv145/mini-paginator
 
 # HOW TO USE
 ```py
-import mini_paginaror
+import mini_paginator
 
 @bot.command()
 async def test_paginate(ctx: commands.Context):
@@ -18,7 +18,7 @@ async def test_paginate(ctx: commands.Context):
         Embed(title="Test page 3", description="Page3", color=0x333333)
     ]
     
-    paginator = mini_paginaror.EmbedPaginator(
+    paginator = mini_paginator.EmbedPaginator(
         ctx, 
         pages=pages, 
         page_format="[{}\{}]",
