@@ -31,7 +31,7 @@ async def test_paginate(ctx: commands.Context):
 @bot.command()
 async def test_ckeck_paginator(ctx: commands.Context):
         embed = Embed(title="How are you?", color=0x111111)
-        paginator = mini_paginaror.CheckPaginator(ctx, embed=embed)
+        paginator = mini_paginator.CheckPaginator(ctx, embed=embed)
         try:
                 check = await paginator.run()
         except asyncio.TimeoutError:
