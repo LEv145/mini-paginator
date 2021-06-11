@@ -11,7 +11,7 @@ python3 -m pip install -U git+https://github.com/LEv145/mini-paginator
 import mini_paginator
 
 @bot.command()
-async def test_paginate(ctx: commands.Context):
+async def test_embed_paginator(ctx: commands.Context):
     pages = [
         Embed(title="Test page 1", description="Page1", color=0x111111),
         Embed(title="Test page 2", description="Page2", color=0x222222),
