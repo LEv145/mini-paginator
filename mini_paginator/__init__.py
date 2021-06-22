@@ -14,6 +14,8 @@ from discord.errors import DiscordException
 from more_itertools import chunked
 
 
+T = TypeVar('T')
+
 class ForwardBackwardList(object):
 	def __init__(self, items: list):
 		self.items = items
@@ -237,7 +239,7 @@ class EmbedPaginator(Dialog):
 				await self.message.remove_reaction(reaction, user)
 
 	@staticmethod
-	def generate_sub_lists(iterable: list, max_len: int = 25) -> List[list]:
+	def generate_sub_lists(iterable: List[T], max_len: int = 25) -> List[List[T]]:
 		"""
 		Берет список элементов и преобразует его в список подсписков этих
 		элементов с каждым подсписком, содержащим макс. элементы `max_len`
