@@ -129,7 +129,7 @@ class EmbedPaginator(Dialog):
 		self,
 		ctx: commands.Context,
 		pages: List[Embed],
-		control_emojis: Tuple[str, str, str, str, str, str] = ('⏮', '◀', '▶', '⏭', '🔢', '📛'),
+		control_emojis: Tuple[str, str, str, str, str, str] = ("⏮", "◀", "▶", "⏭", "🔢", "📛"),
 		page_format: str = "({}/{})",
 		separator: str = " • ",
 		enter_page: str = "`Введите номер стринички, куда хотите быстро переместиться: `",
@@ -236,8 +236,8 @@ class EmbedPaginator(Dialog):
 				else:
 					await self.quit(self.quit_text)
 
-				await self.message.edit(embed=pages.current)
 				with suppress(DiscordException):
+					await self.message.edit(embed=pages.current)
 					await self.message.remove_reaction(reaction, user)
 
 		await asyncio.gather(add_reactions(), check_reactions())
