@@ -1,5 +1,5 @@
 # mini-paginator
-Mini-paginator for discord.py
+Mini-paginator for discord.py (Work with Dislash.py)
 
 # Install
 ```
