@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import suppress
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TypeVar
 
 from discord import (
 	Embed,
@@ -53,7 +53,6 @@ class Dialog(object):
 		"""
 		Редактирование диалога
 		"""
-
 		await self.message.edit(content=text, embed=embed)
 
 	async def quit(self, text: Optional[str] = None) -> None:
@@ -130,7 +129,7 @@ class EmbedPaginator(Dialog):
 		self,
 		ctx: commands.Context,
 		pages: List[Embed],
-		control_emojis: Tuple[str, str, str, str, str, str] = ('⏮', '◀', '▶', '⏭', '🔢', '📛'),
+		control_emojis: Tuple[str, str, str, str, str, str] = ("⏮", "◀", "▶", "⏭", "🔢", "📛"),
 		page_format: str = "({}/{})",
 		separator: str = " • ",
 		enter_page: str = "`Введите номер стринички, куда хотите быстро переместиться: `",
@@ -178,65 +177,69 @@ class EmbedPaginator(Dialog):
 		"""
 
 		users = maybe_users or [self.ctx.author]
-		channel = maybe_channel or self.ctx.channel
+		sender = maybe_channel or self.ctx
 
 		# Форматируем странички
 		pages = self.formatting_pages()
 
 		if len(self.pages) == 1:
-			self.message = await channel.send(embed=pages.current)
+			self.message = await sender.send(embed=pages.current)
 			return
 
-		self.message: Message = await channel.send(embed=pages.current)
+		self.message: Message = await sender.send(embed=pages.current)
 
-		for emoji in self.control_emojis:
-			await self.message.add_reaction(emoji)
+		async def add_reactions():
+			for emoji in self.control_emojis:
+				await self.message.add_reaction(emoji)
 
-		def check(reaction: Reaction, user: User):
-			result = reaction.message.id == self.message.id and reaction.emoji in self.control_emojis
+		async def check_reactions():
+			def check(reaction: Reaction, user: User):
+				result = reaction.message.id == self.message.id and reaction.emoji in self.control_emojis
 
-			if users:
-				return result and user in users
-			else:
-				return result
+				if users:
+					return result and user in users
+				else:
+					return result
 
-		while True:
-			try:
-				reaction, user = await self.ctx.bot.wait_for(
-					"reaction_add", check=check, timeout=timeout
-				)
-			except asyncio.TimeoutError:
+			while True:
+				try:
+					reaction, user = await self.ctx.bot.wait_for(
+						"reaction_add", check=check, timeout=timeout
+					)
+				except asyncio.TimeoutError:
+					with suppress(DiscordException):
+						await self.message.clear_reactions()
+					return
+				emoji = reaction.emoji
+
+				if emoji == self.control_emojis[0]:
+					pages.set(0)
+
+				elif emoji == self.control_emojis[1]:
+					pages.back()
+
+				elif emoji == self.control_emojis[2]:
+					pages.forward()
+
+				elif emoji == self.control_emojis[3]:
+					pages.set(pages.max_index)
+
+				elif emoji == self.control_emojis[4]:
+					enter_page_message: Message = await self.ctx.send(self.enter_page)
+					index = await self._get_page(users)
+					if index:
+						with suppress(AssertionError):
+							pages.set(index)
+					await enter_page_message.delete()
+
+				else:
+					await self.quit(self.quit_text)
+
+				await self.message.edit(embed=pages.current)
 				with suppress(DiscordException):
-					await self.message.clear_reactions()
-				return
-			emoji = reaction.emoji
+					await self.message.remove_reaction(reaction, user)
 
-			if emoji == self.control_emojis[0]:
-				pages.set(0)
-
-			elif emoji == self.control_emojis[1]:
-				pages.back()
-
-			elif emoji == self.control_emojis[2]:
-				pages.forward()
-
-			elif emoji == self.control_emojis[3]:
-				pages.set(pages.max_index)
-
-			elif emoji == self.control_emojis[4]:
-				enter_page_message: Message = await self.ctx.send(self.enter_page)
-				index: Optional[int] = await self._get_page(users)
-				if index is not None:
-					with suppress(AssertionError):
-						pages.set(index)
-				await enter_page_message.delete()
-
-			else:
-				await self.quit(self.quit_text)
-
-			await self.message.edit(embed=pages.current)
-			with suppress(DiscordException):
-				await self.message.remove_reaction(reaction, user)
+		await asyncio.gather(add_reactions(), check_reactions())
 
 	@staticmethod
 	def generate_sub_lists(iterable: List[T], max_len: int = 25) -> List[List[T]]:
@@ -253,7 +256,7 @@ class EmbedPaginator(Dialog):
 		"""
 
 		def check(message: Message):
-			return message.channel == self.ctx.channel and message.author in users
+			result = message.channel == self.ctx.channel
 
 			if users:
 				return result and message.author in users
