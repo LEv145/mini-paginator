@@ -93,9 +93,9 @@ class CheckPaginator(Dialog):
 		"""
 
 		users = maybe_users or [self.ctx.author]
-		channel = maybe_channel or self.ctx.channel
+		sender = maybe_channel or self.ctx
 
-		self.message: Message = await channel.send(embed=self.embed)
+		self.message: Message = await sender.send(embed=self.embed)
 
 		for i in self.control_emojis:
 			await self.message.add_reaction(i)
