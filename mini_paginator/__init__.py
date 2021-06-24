@@ -135,7 +135,7 @@ class EmbedPaginator(Dialog):
 		enter_page: str = "`Введите номер стринички, куда хотите быстро переместиться: `",
 		quit_text: Optional[str] = None
 	):
-		assert pages is [], "Pages is empty"
+		assert pages is not [], "Pages is empty"
 		self.ctx = ctx
 		self.pages = pages
 		self.page_format = page_format
