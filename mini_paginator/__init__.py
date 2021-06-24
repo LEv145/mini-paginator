@@ -179,12 +179,12 @@ class EmbedPaginator(Dialog):
 		users = maybe_users or [self.ctx.author]
 		sender = maybe_channel or self.ctx
 
+		if len(self.pages) == 1:
+			self.message = await sender.send(embed=self.pages[0])
+			return
+
 		# Форматируем странички
 		pages = self.formatting_pages()
-
-		if len(self.pages) == 1:
-			self.message = await sender.send(embed=pages.current)
-			return
 
 		self.message: Message = await sender.send(embed=pages.current)
 
