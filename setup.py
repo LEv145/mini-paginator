@@ -1,7 +1,7 @@
 import setuptools
-with open("README.md", "r") as f:
+with open("README.md", "r", encoding="utf8") as f:
     long_description = f.read()
-with open("requirements.txt") as f:
+with open("requirements.txt", encoding="utf8") as f:
     requirements = f.readlines()
 setuptools.setup(
     name="mini_paginator",
