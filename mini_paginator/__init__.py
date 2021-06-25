@@ -10,7 +10,7 @@ from discord import (
 	TextChannel
 )
 from discord.ext import commands
-from discord.errors import DiscordException
+from discord.errors import Forbidden
 from more_itertools import chunked
 
 
@@ -60,7 +60,7 @@ class Dialog(object):
 		Диалог выхода
 		"""
 
-		with suppress(DiscordException):
+		with suppress(Forbidden):
 			if text is None:
 				await self.message.delete()
 			else:
@@ -110,11 +110,11 @@ class CheckPaginator(Dialog):
 		try:
 			reaction, _ = await self.ctx.bot.wait_for('reaction_add', timeout=timeout, check=check)
 		except asyncio.TimeoutError as error:
-			with suppress(DiscordException):
+			with suppress(Forbidden):
 				await self.message.clear_reactions()
 			raise error
 		else:
-			with suppress(DiscordException):
+			with suppress(Forbidden):
 				await self.message.clear_reactions()
 
 			return reaction.emoji == self.control_emojis[0]
@@ -208,7 +208,7 @@ class EmbedPaginator(Dialog):
 						"reaction_add", check=check, timeout=timeout
 					)
 				except asyncio.TimeoutError:
-					with suppress(DiscordException):
+					with suppress(Forbidden):
 						await self.message.clear_reactions()
 					return
 				emoji = reaction.emoji
@@ -236,8 +236,8 @@ class EmbedPaginator(Dialog):
 				else:
 					await self.quit(self.quit_text)
 
-				with suppress(DiscordException):
-					await self.message.edit(embed=pages.current)
+				await self.message.edit(embed=pages.current)
+				with suppress(Forbidden):
 					await self.message.remove_reaction(reaction, user)
 
 		await asyncio.gather(add_reactions(), check_reactions())
