@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
     requirements = f.readlines()
 setuptools.setup(
     name="mini_paginator",
-    version="1.2.1",
+    version="1.2.2",
     author="Lev145",
     description="Mini-paginator for discord.py",
     long_description=long_description,
@@ -13,7 +13,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=requirements,
     classifiers=[
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
