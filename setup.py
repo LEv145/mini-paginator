@@ -10,7 +10,7 @@ setuptools.setup(
     description="Mini-paginator for discord.py",
     long_description=long_description,
     url="https://github.com/LEv145/mini-paginator",
-    packages=setuptools.find_packages("mini_paginator"),
+    packages=setuptools.find_packages(),
     install_requires=requirements,
     classifiers=[
         "Programming Language :: Python :: 3.8",
