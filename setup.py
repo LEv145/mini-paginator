@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
     requirements = f.readlines()
 setuptools.setup(
     name="mini_paginator",
-    version="1.2.2",
+    version="1.2.3",
     author="Lev145",
     description="Mini-paginator for discord.py",
     long_description=long_description,
