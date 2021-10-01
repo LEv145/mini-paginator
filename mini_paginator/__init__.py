@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import suppress
-from typing import List, Optional, Tuple, TypeVar
+from typing import List, Optional, Tuple, TypeVar, Iterable
 
 from discord import (
     Embed,
@@ -290,7 +290,7 @@ class EmbedPaginator(Dialog):
         await asyncio.gather(add_reactions(), check_reactions())
 
     @staticmethod
-    def generate_sub_lists(iterable: List[T], max_len: int = 25) -> List[List[T]]:
+    def generate_sub_lists(iterable: Iterable[T], max_len: int = 25) -> List[List[T]]:
         """
         Берет список элементов и преобразует его в список подсписков этих
         элементов с каждым подсписком, содержащим макс. элементы `max_len`
